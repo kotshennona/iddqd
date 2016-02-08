@@ -17,6 +17,36 @@
 #include <sys/select.h>
 #include <stdio.h>
 
+/*
+ * Function: process_cmds
+ * ----------------------
+ * Opens a IO stream and reads all strings from it one by one;
+ *
+ * n1: a file descriptor 
+ *
+ * returns: always 0
+ *
+ */
+static int process_cmds(int fd, int max_cmd_length){
+	FILE *f;
+	char cmd[MAX_COMMAND_LENGTH];
+	
+	f = fdopen (fd, COMM_FILE_OPEN_MODE);
+	if (f == NULL){
+		ALOGE("Unable to open io stream (%s)\n", strerror(errno));
+		return -1;
+	}
+	
+	while (fgets(cmd, MAX_COMMAND_LENGTH, f) != NULL){
+		ALOGI("%s\n", cmd);
+	// TODO: Clear the array
+	}
+
+	// TODO: Process return code	
+	fclose (f);
+	
+	return 0;
+}
 
 /*
  * Function: serve_client
