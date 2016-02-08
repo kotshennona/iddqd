@@ -7,8 +7,14 @@
 
 #define LOG_TAG "iddqd"
 #define SOCKET_NAME "inputdevinfo_socket"
+
+// NB that MAX_TOKEN_LENGTH and MAX_TOKEN_LENGTH macros are supposed
+// to take into account string termination characher.
+#define MAX_TOKEN_LENGTH 23
 #define MAX_COMMAND_LENGTH 27
+
 #define COMM_FILE_OPEN_MODE "a+"
+#define TOKEN_SEPARATORS  " 	"
 
 #include <cutils/sockets.h>
 #include <cutils/log.h>
@@ -16,6 +22,37 @@
 #include <string.h>
 #include <sys/select.h>
 #include <stdio.h>
+#include <string.h>
+
+typedef struct{
+	char cmd[MAX_TOKEN_LENGTH];
+	char arg[MAX_TOKEN_LENGTH];
+} iddqd_cmd;
+
+
+/*
+ * Function: parse_cmd
+ * ----------------------
+ * Parses a string to get a iddqd daemon command.
+ *
+ * n1: a reference to a char array
+ * n2: a reference to a iddqd_cmd structure
+ *
+ * returns: 0 on success, 1 on error
+ *
+ */
+
+int parse_cmd(char *string, iddqd_cmd *res){
+
+	strcpy (res->cmd, strtok(string, TOKEN_SEPARATORS));	
+	strcpy (res->arg, strtok(NULL, TOKEN_SEPARATORS));	
+
+	if( (res->cmd == NULL) || (res->arg == NULL)){
+		return 1;	
+	}
+
+	return 0;
+}
 
 /*
  * Function: process_cmds
@@ -27,9 +64,11 @@
  * returns: always 0
  *
  */
+
 static int process_cmds(int fd, int max_cmd_length){
 	FILE *f;
 	char cmd[MAX_COMMAND_LENGTH];
+	iddqd_cmd pcmd;// p stands for "parsed"
 	
 	f = fdopen (fd, COMM_FILE_OPEN_MODE);
 	if (f == NULL){
@@ -39,6 +78,10 @@ static int process_cmds(int fd, int max_cmd_length){
 	
 	while (fgets(cmd, MAX_COMMAND_LENGTH, f) != NULL){
 		ALOGI("%s\n", cmd);
+		if (!parse_cmd(cmd, &pcmd)){
+			ALOGI("Command is %s\n", pcmd.cmd);
+			ALOGI("Argument is %s\n", pcmd.arg);
+		}
 	// TODO: Clear the array
 	}
 
