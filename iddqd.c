@@ -12,9 +12,9 @@
 // to take into account string termination characher.
 #define MAX_TOKEN_LENGTH 23
 #define MAX_COMMAND_LENGTH 27
-
-#define COMM_FILE_OPEN_MODE "a+"
 #define TOKEN_SEPARATORS  " \t\n"
+#define COMMAND_SEPARATOR "--"
+#define COMMAND_SEPARATOR_LENGTH 2
 
 #include <cutils/sockets.h>
 #include <cutils/log.h>
@@ -69,36 +69,88 @@ int parse_cmd(char *string, iddqd_cmd *res){
 /*
  * Function: process_cmds
  * ----------------------
- * Opens a IO stream and reads all strings from it one by one;
+ * Reads commands from file. Commands are separated by COMMAND_SEPARATOR.
  *
  * n1: a file descriptor 
  *
- * returns: always 0
+ * returns:  0 on succes, 1 on error
  *
  */
 
 static int process_cmds(int fd, int max_cmd_length){
-	FILE *f;
+
+	// Consider moving these arrays to the heap	
 	char cmd[MAX_COMMAND_LENGTH];
+	char r_buf[MAX_COMMAND_LENGTH * 2 + 1];
+	ssize_t b_read;
+	int i;
+
+	// *start points to the first available element in buffer
+	char *start = r_buf;
+	// *end points to the end of the command, which is basically
+	// the first element of the COMMAND_SEPARATOR
+	char *end = r_buf;
+
+	memset(cmd, '\0', MAX_COMMAND_LENGTH);
+
+	// Since we operate only on MAX_COMMAND_LENGTH * 2 elements
+	// the last character is always \0.
+	memset(r_buf, '\0', MAX_COMMAND_LENGTH * 2 + 1);
+
+
 	iddqd_cmd pcmd;// p stands for "parsed"
 	
-	f = fdopen (fd, COMM_FILE_OPEN_MODE);
-	if (f == NULL){
-		ALOGE("Unable to open io stream (%s)\n", strerror(errno));
-		return -1;
-	}
-	
-	while (fgets(cmd, MAX_COMMAND_LENGTH - 1, f) != NULL){
-		ALOGI("%s\n", cmd);
+	while (1){  
+
+		b_read = read(fd, start, (r_buf + MAX_COMMAND_LENGTH * 2) - start); // ... * sizeof(char)
+		start = start + b_read;
+		end = strstr(r_buf, COMMAND_SEPARATOR);
+		
+		// The first thing in the buffer is COMMAND_SEPARATOR
+		// TODO: Shift everything COMMAND_SEPARATOR_LENGTH left and try again
+		if(r_buf == end) {
+			ALOGI("start == end");
+			break;
+		}	
+
+		// Either command is too long or the client uses unsupported
+		// COMMAND_SEPARATOR
+		if(end == NULL && b_read == 0) {
+			ALOGI("end == null");
+			break;	
+		} 
+
+		// Command is too long
+		if((end - r_buf) > MAX_COMMAND_LENGTH) {
+			ALOGI("Command size exceeded");
+			memset(r_buf, '\0', MAX_COMMAND_LENGTH * 2);
+			start = r_buf;
+			end = r_buf;
+			continue;
+		}
+		ALOGI("Going on");
+		strncpy(cmd, r_buf, end - r_buf - 1);// ... * sizeof(char)
+		ALOGI("Going on 2");
+		end = end + COMMAND_SEPARATOR_LENGTH; 
+		ALOGI("Going on 3");
+		// TODO: employ MACRO or function
+		for (i = 0; i < (r_buf + MAX_COMMAND_LENGTH * 2) - end; i++){
+			ALOGI("Shifting elements. Iteration %d", i);
+			*(start + i) = *(end + i);
+			ALOGI("Element %d is %s", i, *(start + i) );
+		}
+		start = ((r_buf + MAX_COMMAND_LENGTH * 2) - end) + 1;
+		end = r_buf;
+
+
 		if (!parse_cmd(cmd, &pcmd)){
 			ALOGI("Command is %s\n", pcmd.cmd);
 			ALOGI("Argument is %s\n", pcmd.arg);
 		}
-	// TODO: Clear the array
+		
+		memset(cmd, '\0', MAX_COMMAND_LENGTH);
+		
 	}
-
-	// TODO: Process return code	
-	fclose (f);
 	
 	return 0;
 }
