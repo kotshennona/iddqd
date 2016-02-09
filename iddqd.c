@@ -14,7 +14,7 @@
 #define MAX_COMMAND_LENGTH 27
 
 #define COMM_FILE_OPEN_MODE "a+"
-#define TOKEN_SEPARATORS  " 	"
+#define TOKEN_SEPARATORS  " \t\n"
 
 #include <cutils/sockets.h>
 #include <cutils/log.h>
@@ -43,13 +43,25 @@ typedef struct{
  */
 
 int parse_cmd(char *string, iddqd_cmd *res){
+	char *n_token; 
 
-	strcpy (res->cmd, strtok(string, TOKEN_SEPARATORS));	
-	strcpy (res->arg, strtok(NULL, TOKEN_SEPARATORS));	
 
-	if( (res->cmd == NULL) || (res->arg == NULL)){
+	n_token = strtok(string, TOKEN_SEPARATORS);
+
+	if(n_token == NULL || (strlen(n_token) == 0) || (strlen(n_token) >= MAX_TOKEN_LENGTH)){
 		return 1;	
 	}
+
+	strcpy (res->cmd, n_token);	
+	
+	// This would be a loop if we had variable number of argument.
+	n_token = strtok(NULL, TOKEN_SEPARATORS);
+
+	if(n_token == NULL || (strlen(n_token) == 0) || (strlen(n_token) >= MAX_TOKEN_LENGTH)){
+		return 1;	
+	}
+
+	strcpy (res->arg, n_token);	
 
 	return 0;
 }
@@ -76,7 +88,7 @@ static int process_cmds(int fd, int max_cmd_length){
 		return -1;
 	}
 	
-	while (fgets(cmd, MAX_COMMAND_LENGTH, f) != NULL){
+	while (fgets(cmd, MAX_COMMAND_LENGTH - 1, f) != NULL){
 		ALOGI("%s\n", cmd);
 		if (!parse_cmd(cmd, &pcmd)){
 			ALOGI("Command is %s\n", pcmd.cmd);
