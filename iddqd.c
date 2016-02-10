@@ -16,11 +16,14 @@
 #define COMM_FILE_OPEN_MODE "a+"
 #define TOKEN_SEPARATORS  " \t\n"
 
+#define MAX(a,b) ((a < b) ?  (b) : (a))
+
 #include <cutils/sockets.h>
 #include <cutils/log.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/ioctl.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -99,7 +102,7 @@ static int process_cmds(int fd, int max_cmd_length){
 
 	// TODO: Process return code	
 	fclose (f);
-	
+	ALOGI("Returning from process_cmds");
 	return 0;
 }
 
@@ -116,54 +119,78 @@ static int process_cmds(int fd, int max_cmd_length){
  */
 static int serve_client(int fd){
 
-	int current_flags;
-	fd_set read_fds;
-
-	//Adding O_NONBLOCK flag to the descriptor
-	current_flags = fcntl(fd, F_GETFD);
-	current_flags |= O_NONBLOCK;
-	fcntl(fd, F_SETFD, current_flags);
-
-	while(1) {
-		FD_ZERO(&read_fds);
-		FD_SET(fd, &read_fds);
-		
-		int retval = select(fd + 1, &read_fds, NULL, NULL, NULL);
-
-		if(retval < 0){
-			// Should I check for EBADR?
-			break;
-		} else if (retval > 0 && FD_ISSET(fd, &read_fds)) {
-			ALOGI("We have some data to read from our only socket\n");
-			process_cmds(fd, MAX_COMMAND_LENGTH);
-
-		} else {
-			;
-		}
-		
-	}
 	return 0;
 }
 
 int main() {
 
-	int socket_fd;
+	int l_socket_fd = -1;
+	int c_socket_fd = -1;
+	int current_flags;
+	fd_set fds;
 
-	socket_fd = android_get_control_socket(SOCKET_NAME);
+	//Adding O_NONBLOCK flag to the descriptor
+	current_flags = fcntl(l_socket_fd, F_GETFD);
+	current_flags |= O_NONBLOCK;
+	fcntl(l_socket_fd, F_SETFD, current_flags);
+
+	l_socket_fd = android_get_control_socket(SOCKET_NAME);
 	
-	if (socket_fd < 0 ){
+	if (l_socket_fd < 0 ){
 		ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
 		return -1;
 	}
 
-	if (listen (socket_fd, 1) < 0) {
+	if (listen (l_socket_fd, 0) < 0) {
 		ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
 		return -1;
 	}
 
 	while(1){
-		int comm_socket_fd = accept(socket_fd, NULL, NULL);
-		serve_client(comm_socket_fd);
+		FD_ZERO(&fds);
+		FD_SET(l_socket_fd, &fds);
+
+		if (c_socket_fd >= 0 ) {
+			// &&  fcntl(c_socket_fd, F_GETFD) >= 0 ? 
+			FD_SET(c_socket_fd, &fds);
+		}
+
+		int retval = select(MAX(c_socket_fd, l_socket_fd) + 1, &fds, NULL, NULL, NULL);
+
+		if(retval <= 0){
+			ALOGI("Error\n");
+			// Should I check for EBADR?
+			break;
+		} 
+
+		if(FD_ISSET(l_socket_fd, &fds)) {
+			ALOGI("Connection attempt\n");
+			if(c_socket_fd < 0) {
+				c_socket_fd = accept(l_socket_fd, NULL, NULL);
+
+				//Adding O_NONBLOCK flag to the descriptor
+				current_flags = fcntl(c_socket_fd, F_GETFD);
+				current_flags |= O_NONBLOCK;
+				fcntl(c_socket_fd, F_SETFD, current_flags);
+			}
+		} 
+
+		if(c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &fds)){
+
+			int unread_bytes_count;
+			if (ioctl(c_socket_fd, FIONREAD, &unread_bytes_count)){
+				ALOGE("Attempt to check if client socket is closed resulted in error.\n");
+			} else if(unread_bytes_count == 0) {
+				//TODO: Check return code?				
+				close(c_socket_fd);
+				c_socket_fd = -1;
+			} else {
+				process_cmds(c_socket_fd, MAX_COMMAND_LENGTH);
+				close(c_socket_fd);
+				c_socket_fd = -1;
+			}
+		}
+
 	}
 
 return 0;
