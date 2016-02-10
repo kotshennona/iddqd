@@ -16,6 +16,8 @@
 #define COMMAND_SEPARATOR "--"
 #define COMMAND_SEPARATOR_LENGTH 2
 
+#define MAX_READ_BUFFER_SIZE 64
+
 #include <cutils/sockets.h>
 #include <cutils/log.h>
 #include <errno.h>
@@ -81,9 +83,9 @@ static int process_cmds(int fd, int max_cmd_length){
 
 	// Consider moving these arrays to the heap	
 	char cmd[MAX_COMMAND_LENGTH];
-	char r_buf[MAX_COMMAND_LENGTH * 2 + 1];
-	ssize_t b_read;
-	int i;
+	char r_buf[MAX_READ_BUFFER_SIZE + 1];
+	size_t b_read;
+	size_t i;
 
 	// *start points to the first available element in buffer
 	char *start = r_buf;
@@ -93,16 +95,16 @@ static int process_cmds(int fd, int max_cmd_length){
 
 	memset(cmd, '\0', MAX_COMMAND_LENGTH);
 
-	// Since we operate only on MAX_COMMAND_LENGTH * 2 elements
+	// Since we operate only on MAX_READ_BUFFER_SIZE elements
 	// the last character is always \0.
-	memset(r_buf, '\0', MAX_COMMAND_LENGTH * 2 + 1);
+	memset(r_buf, '\0', MAX_READ_BUFFER_SIZE + 1);
 
 
 	iddqd_cmd pcmd;// p stands for "parsed"
 	
 	while (1){  
 
-		b_read = read(fd, start, (r_buf + MAX_COMMAND_LENGTH * 2) - start); // ... * sizeof(char)
+		b_read = read(fd, start, (r_buf + MAX_READ_BUFFER_SIZE) - start); // ... * sizeof(char)
 		start = start + b_read;
 		end = strstr(r_buf, COMMAND_SEPARATOR);
 		
@@ -123,23 +125,20 @@ static int process_cmds(int fd, int max_cmd_length){
 		// Command is too long
 		if((end - r_buf) > MAX_COMMAND_LENGTH) {
 			ALOGI("Command size exceeded");
-			memset(r_buf, '\0', MAX_COMMAND_LENGTH * 2);
+			memset(r_buf, '\0', MAX_READ_BUFFER_SIZE);
 			start = r_buf;
 			end = r_buf;
 			continue;
 		}
-		ALOGI("Going on");
-		strncpy(cmd, r_buf, end - r_buf - 1);// ... * sizeof(char)
-		ALOGI("Going on 2");
+
+		strncpy(cmd, r_buf, end - r_buf);// ... * sizeof(char)
 		end = end + COMMAND_SEPARATOR_LENGTH; 
-		ALOGI("Going on 3");
+
 		// TODO: employ MACRO or function
-		for (i = 0; i < (r_buf + MAX_COMMAND_LENGTH * 2) - end; i++){
-			ALOGI("Shifting elements. Iteration %d", i);
-			*(start + i) = *(end + i);
-			ALOGI("Element %d is %s", i, *(start + i) );
+		for (i = 0; i < (r_buf + MAX_READ_BUFFER_SIZE) - end - 1; i++){
+			*(r_buf + i) = *(end + i);
 		}
-		start = ((r_buf + MAX_COMMAND_LENGTH * 2) - end) + 1;
+		start = ((r_buf + MAX_READ_BUFFER_SIZE) - end);
 		end = r_buf;
 
 
