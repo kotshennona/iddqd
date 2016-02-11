@@ -46,6 +46,32 @@ int get_max (int first, int second) {
 }
 
 /*
+ * Function: make_nonblocking 
+ * Enables a non-blocking mode for a given file descriptor.
+ * 
+ * n1: int file descriptor
+ *
+ * returns: 0 on succes, 1 on error
+ *
+ */
+
+int make_nonblocking (int fd) {
+	int current_flags;
+	current_flags = fcntl(fd, F_GETFD);
+	
+	if (current_flags < 0) {
+		return 1;
+	}
+	current_flags |= O_NONBLOCK;
+	
+	if (fcntl(fd, F_SETFD, current_flags) < 0){
+		return 1;
+	}
+	
+	return 0;
+}
+
+/*
  * Function: parse_cmd
  * ----------------------
  * Parses a string to get a iddqd daemon command.
@@ -122,19 +148,17 @@ int main() {
 
 	int l_socket_fd = -1;
 	int c_socket_fd = -1;
-	int current_flags;
 	fd_set fds;
 
-	//Adding O_NONBLOCK flag to the descriptor
-	current_flags = fcntl(l_socket_fd, F_GETFD);
-	current_flags |= O_NONBLOCK;
-	fcntl(l_socket_fd, F_SETFD, current_flags);
-
 	l_socket_fd = android_get_control_socket(SOCKET_NAME);
-	
+
 	if (l_socket_fd < 0 ){
 		ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
 		return -1;
+	}
+
+	if (make_nonblocking (l_socket_fd)) {
+		ALOGE("Unable to modify inputdevinfo_socket flags. (%s)\n", strerror(errno));
 	}
 
 	if (listen (l_socket_fd, 0) < 0) {
@@ -163,12 +187,12 @@ int main() {
 			ALOGI("Connection attempt\n");
 			if(c_socket_fd < 0) {
 				c_socket_fd = accept(l_socket_fd, NULL, NULL);
-
-				//Adding O_NONBLOCK flag to the descriptor
-				current_flags = fcntl(c_socket_fd, F_GETFD);
-				current_flags |= O_NONBLOCK;
-				fcntl(c_socket_fd, F_SETFD, current_flags);
 			}
+
+			if (make_nonblocking (c_socket_fd)) {
+				ALOGE("Unable to modify socket flags. (%s)\n", strerror(errno));
+			}
+			
 		} 
 
 		if(c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &fds)){
