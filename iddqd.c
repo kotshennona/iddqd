@@ -16,8 +16,6 @@
 #define COMM_FILE_OPEN_MODE "a+"
 #define TOKEN_SEPARATORS  " \t\n"
 
-#define MAX(a,b) ((a < b) ?  (b) : (a))
-
 #include <cutils/sockets.h>
 #include <cutils/log.h>
 #include <errno.h>
@@ -32,6 +30,20 @@ typedef struct{
 	char arg[MAX_TOKEN_LENGTH];
 } iddqd_cmd;
 
+/*
+ * Function: get_max
+ * -------------------
+ * Takes two int arguments and returns the largest one
+ *
+ * n1: integer
+ * n2: integer
+ *
+ * returns: the largest of two given integers
+ */
+// Should I make this one inline?
+int get_max (int first, int second) {
+	return (first < second) ?  (second) : (first);
+}
 
 /*
  * Function: parse_cmd
@@ -155,7 +167,7 @@ int main() {
 			FD_SET(c_socket_fd, &fds);
 		}
 
-		int retval = select(MAX(c_socket_fd, l_socket_fd) + 1, &fds, NULL, NULL, NULL);
+		int retval = select(get_max(c_socket_fd, l_socket_fd) + 1, &fds, NULL, NULL, NULL);
 
 		if(retval <= 0){
 			ALOGI("Error\n");
