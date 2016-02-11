@@ -118,22 +118,6 @@ static int process_cmds(int fd, int max_cmd_length){
 	return 0;
 }
 
-/*
- * Function: serve_client
- * ----------------------
- * Reads input from a given file descriptor until this fd becomes invalid.
- * This usually happens when the other side terminates the connection.
- *
- * n1: a file descriptor 
- *
- * returns: always 0
- *
- */
-static int serve_client(int fd){
-
-	return 0;
-}
-
 int main() {
 
 	int l_socket_fd = -1;
