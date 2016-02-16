@@ -8,15 +8,21 @@
 #define LOG_TAG "iddqd"
 #define SOCKET_NAME "inputdevinfo_socket"
 
-// NB that MAX_TOKEN_LENGTH and MAX_TOKEN_LENGTH macros are supposed
+// NB that WHATEVER_SIZE is basically WHATEVER_LENGTH plus one
 // to take into account string termination characher.
 #define MAX_TOKEN_LENGTH 23
+#define MAX_TOKEN_SIZE MAX_TOKEN_LENGTH + 1
 #define MAX_COMMAND_LENGTH 27
+#define MAX_COMMAND_SIZE MAX_COMMAND_LENGTH + 1
 #define TOKEN_SEPARATORS  " \t\n"
-#define COMMAND_SEPARATOR "--"
-#define COMMAND_SEPARATOR_LENGTH 2
+#define COMMAND_SEPARATOR "-"
+#define COMMAND_SEPARATOR_LENGTH 1
 
-#define MAX_READ_BUFFER_SIZE 64
+#define MAX_READ_BUFFER_LENGTH (MAX_COMMAND_LENGTH + MAX_TOKEN_LENGTH) * 2
+#define MAX_READ_BUFFER_SIZE MAX_READ_BUFFER_LENGTH + 1
+
+#define MAX_READ_BUFFER_LENGTH (MAX_COMMAND_LENGTH + MAX_TOKEN_LENGTH) * 2
+#define MAX_READ_BUFFER_SIZE MAX_READ_BUFFER_LENGTH + 1
 
 #include <cutils/sockets.h>
 #include <cutils/log.h>
@@ -27,8 +33,8 @@
 #include <string.h>
 
 typedef struct{
-	char cmd[MAX_TOKEN_LENGTH];
-	char arg[MAX_TOKEN_LENGTH];
+	char cmd[MAX_TOKEN_SIZE];
+	char arg[MAX_TOKEN_SIZE];
 } iddqd_cmd;
 
 
@@ -45,9 +51,9 @@ typedef struct{
  */
 
 int parse_cmd(char *string, iddqd_cmd *res){
+	ALOGI("Entered parse_cmd\n");
+
 	char *n_token; 
-
-
 	n_token = strtok(string, TOKEN_SEPARATORS);
 
 	if(n_token == NULL || (strlen(n_token) == 0) || (strlen(n_token) >= MAX_TOKEN_LENGTH)){
@@ -69,6 +75,148 @@ int parse_cmd(char *string, iddqd_cmd *res){
 }
 
 /*
+ * Function: read_from_socket
+ * ----------------------
+ * Read up to N characters from the provided file descriptor into a given buffer.
+ *
+ * n1: a file descriptor 
+ * n2: a pointer to a buffer
+ * n3: size of the buffer
+ *
+ * returns:  number of bytes read
+ *
+ */
+size_t read_from_socket(int fd, char *rbuf, size_t buffer_size){
+	ALOGI("Entered read_from_socket\n");
+
+	ALOGI("Entered read_from_socket\n");
+
+	size_t taken_space;
+	size_t free_space;
+	size_t result;
+	
+	taken_space = strlen(rbuf);
+	free_space = buffer_size - taken_space;
+	
+	if(free_space > 0){ 
+		//TODO: process return code
+		result = read(fd, rbuf + taken_space, free_space);
+	} else {
+		result = 0;
+	}
+	ALOGI("read_from_socket exiting, read %d \n", result);	
+	ALOGI("buffer is %s\n", rbuf);	
+
+	return result;
+}
+
+/*
+ * Function: parse_input
+ * ----------------------
+ * Read up to N characters from the provided file descriptor into a given buffer.
+ *
+ * n1: a file descriptor 
+ * n2: a pointer to a buffer
+ * n3: size of the buffer
+ *
+ * returns:  length of the parsed command (excluding \0)
+ *
+ */
+
+size_t parse_input(char *rbuf, char *cmd, size_t length){
+
+	ALOGI("Entered parse_input\n");	
+	ALOGI("buffer is %s\n", rbuf);	
+	char *delimiter;
+	delimiter = strstr(rbuf, COMMAND_SEPARATOR);
+	*cmd='\0';
+
+	// Either command is too long or the client uses unsupported
+	// COMMAND_SEPARATOR
+	if (delimiter == NULL){
+		ALOGI("Delimiter not found\n");
+		*rbuf = '\0';
+		return 0;
+	}
+
+	// The first thing in the buffer is COMMAND_SEPARATOR
+	// TODO: Shift everything COMMAND_SEPARATOR_LENGTH left and try again
+	if(rbuf == delimiter) {
+		ALOGI("Delimiter at start\n");
+		for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - COMMAND_SEPARATOR_LENGTH; i++){
+			*(rbuf + i) = *(rbuf + COMMAND_SEPARATOR_LENGTH + i);
+			*(rbuf + i + 1) = '\0';
+		}
+		return 0;
+	}
+
+	// Command is too long
+	if((delimiter - rbuf) > MAX_COMMAND_LENGTH) {
+		ALOGI("Command size exceeded");
+		size_t offset = delimiter - rbuf;
+		for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset; i++){
+			*(rbuf + i) = *(rbuf + offset + i);
+			*(rbuf + i + 1) = '\0';
+		}
+
+		return 0;
+	}
+
+	strncpy(cmd, rbuf, delimiter - rbuf);// ... * sizeof(char)
+	delimiter = delimiter + COMMAND_SEPARATOR_LENGTH; 
+	size_t offset = delimiter - rbuf;
+
+	// TODO: employ MACRO or function
+	for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset ; i++){
+		*(rbuf + i) = *(delimiter + i);
+		*(rbuf + i + 1) = '\0';
+	}
+
+	ALOGI("Exitiong parse_input\n");	
+	ALOGI("buffer is %s\n", rbuf);	
+	ALOGI("cmd is %s\n", cmd);	
+	return 1;
+}
+
+/*
+ * Function: get_next_command
+ * ----------------------
+ * Retrieve a command from a given file descriptor. Command is a character sequence
+ * terminated by COMMAND_SEPARATOR.
+ * First it reads a few bytes from the fd to the buffer, then parses 
+ *
+ * n1: a file descriptor 
+ * n2: a pointer to read buffer
+ * n3: a pointer to write buffer
+ *
+ * returns:  0 on succes, 1 on error
+ *
+ */
+
+int get_next_command(int fd, char *rbuf, char *cmd){
+	ALOGI("Entered get_next_command\n");
+
+	size_t bytes_read_cnt;
+	size_t parsed_cmd_length;
+	size_t result;
+
+	while (1){
+		bytes_read_cnt = read_from_socket(fd, rbuf, (size_t) MAX_READ_BUFFER_LENGTH);
+		parsed_cmd_length = parse_input(rbuf, cmd, (size_t) MAX_COMMAND_LENGTH);
+
+		if (parsed_cmd_length > 0 ){
+			result = parsed_cmd_length;
+			break;
+		}else if (bytes_read_cnt == 0){
+			result = 0;
+			break;
+		}
+	}
+	ALOGI("get_next_command exiting\n");	
+	return result;
+}
+
+/*
  * Function: process_cmds
  * ----------------------
  * Reads commands from file. Commands are separated by COMMAND_SEPARATOR.
@@ -80,77 +228,28 @@ int parse_cmd(char *string, iddqd_cmd *res){
  */
 
 static int process_cmds(int fd, int max_cmd_length){
+	ALOGI("Entered process_cmds\n");
+	
+	char *cmd = malloc(sizeof(char) * MAX_COMMAND_SIZE);
+	char *r_buf = malloc(sizeof(char) * MAX_READ_BUFFER_SIZE);
+	*cmd = '\0';
+	*r_buf = '\0';
+	iddqd_cmd pcmd;// p stands for "parsed"
 
-	// Consider moving these arrays to the heap	
-	char cmd[MAX_COMMAND_LENGTH];
-	char r_buf[MAX_READ_BUFFER_SIZE + 1];
 	size_t b_read;
 	size_t i;
 
-	// *start points to the first available element in buffer
-	char *start = r_buf;
-	// *end points to the end of the command, which is basically
-	// the first element of the COMMAND_SEPARATOR
-	char *end = r_buf;
-
-	memset(cmd, '\0', MAX_COMMAND_LENGTH);
-
-	// Since we operate only on MAX_READ_BUFFER_SIZE elements
-	// the last character is always \0.
-	memset(r_buf, '\0', MAX_READ_BUFFER_SIZE + 1);
-
-
-	iddqd_cmd pcmd;// p stands for "parsed"
-	
-	while (1){  
-
-		b_read = read(fd, start, (r_buf + MAX_READ_BUFFER_SIZE) - start); // ... * sizeof(char)
-		start = start + b_read;
-		end = strstr(r_buf, COMMAND_SEPARATOR);
-		
-		// The first thing in the buffer is COMMAND_SEPARATOR
-		// TODO: Shift everything COMMAND_SEPARATOR_LENGTH left and try again
-		if(r_buf == end) {
-			ALOGI("start == end");
-			break;
-		}	
-
-		// Either command is too long or the client uses unsupported
-		// COMMAND_SEPARATOR
-		if(end == NULL && b_read == 0) {
-			ALOGI("end == null");
-			break;	
-		} 
-
-		// Command is too long
-		if((end - r_buf) > MAX_COMMAND_LENGTH) {
-			ALOGI("Command size exceeded");
-			memset(r_buf, '\0', MAX_READ_BUFFER_SIZE);
-			start = r_buf;
-			end = r_buf;
-			continue;
-		}
-
-		strncpy(cmd, r_buf, end - r_buf);// ... * sizeof(char)
-		end = end + COMMAND_SEPARATOR_LENGTH; 
-
-		// TODO: employ MACRO or function
-		for (i = 0; i < (r_buf + MAX_READ_BUFFER_SIZE) - end - 1; i++){
-			*(r_buf + i) = *(end + i);
-		}
-		start = ((r_buf + MAX_READ_BUFFER_SIZE) - end);
-		end = r_buf;
-
+	while(get_next_command(fd, r_buf, cmd) > 0) {
+		ALOGI("get_next_command\n");
 
 		if (!parse_cmd(cmd, &pcmd)){
 			ALOGI("Command is %s\n", pcmd.cmd);
 			ALOGI("Argument is %s\n", pcmd.arg);
 		}
-		
-		memset(cmd, '\0', MAX_COMMAND_LENGTH);
-		
 	}
 	
+	free(cmd);
+	free(r_buf);
 	return 0;
 }
 
