@@ -7,7 +7,7 @@ LOCAL_MODULE_TAGS := eng
 
 LOCAL_SRC_FILES := iddqd.c
 LOCAL_SHARED_LIBRARIES := libcutils 
-LOCAL_CFLAGS := -Wall
+LOCAL_CFLAGS := -Wall -std=c99
 
 include $(BUILD_EXECUTABLE)
 
