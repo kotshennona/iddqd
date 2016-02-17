@@ -183,13 +183,14 @@ size_t parse_input(char *rbuf, char *cmd, size_t length){
  * ----------------------
  * Retrieve a command from a given file descriptor. Command is a character sequence
  * terminated by COMMAND_SEPARATOR.
- * First it reads a few bytes from the fd to the buffer, then parses 
+ * First it reads a few bytes from the fd to the buffer, then parses contents of
+ * that buffer.
  *
  * n1: a file descriptor 
  * n2: a pointer to read buffer
  * n3: a pointer to write buffer
  *
- * returns:  0 on succes, 1 on error
+ * returns:  number of characters written to the write (output) buffer.
  *
  */
 
