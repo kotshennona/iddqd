@@ -145,6 +145,8 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
     result = read(fd, rbuf + taken_space, free_space);
     if (result >= 0) {
       rbuf[taken_space + result] = '\0';
+    } else {
+      result = 0;
     }
   } else {
     result = 0;
@@ -252,24 +254,14 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
 
   size_t bytes_read_cnt;
   size_t parsed_cmd_length;
-  size_t result;
 
-  while (1) {
+  do {
+    bytes_read_cnt = read_from_socket(fd, rbuf, (size_t)MAX_READ_BUFFER_LENGTH);
     parsed_cmd_length = parse_input(rbuf, cmd, (size_t)MAX_COMMAND_LENGTH);
-
-    if (parsed_cmd_length > 0) {
-      result = parsed_cmd_length;
-      break;
-    } else if (read_from_socket(fd, rbuf, (size_t)MAX_READ_BUFFER_LENGTH) > 0) {
-      continue;
-    } else {
-      result = 0;
-      break;
-    }
-  }
+  } while (bytes_read_cnt > 0 && parsed_cmd_length == 0);
 
   ALOGI("get_next_command exiting\n");
-  return result;
+  return parsed_cmd_length;
 }
 
 /*
