@@ -27,11 +27,13 @@
 #include <cutils/log.h>
 #include <cutils/sockets.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
+#include <unistd.h>
 
 typedef struct {
   char cmd[MAX_TOKEN_SIZE];
@@ -65,14 +67,14 @@ int get_max(int first, int second) {
 
 int make_nonblocking(int fd) {
   int current_flags;
-  current_flags = fcntl(fd, F_GETFD);
+  current_flags = fcntl(fd, F_GETFL);
 
   if (current_flags < 0) {
     return 1;
   }
   current_flags |= O_NONBLOCK;
 
-  if (fcntl(fd, F_SETFD, current_flags) < 0) {
+  if (fcntl(fd, F_SETFL, current_flags) < 0) {
     return 1;
   }
 
