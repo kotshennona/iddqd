@@ -353,8 +353,6 @@ int main() {
         c_socket_fd = -1;
       } else {
         process_cmds(c_socket_fd, MAX_COMMAND_LENGTH);
-        close(c_socket_fd);
-        c_socket_fd = -1;
       }
     }
   }
