@@ -209,7 +209,12 @@ size_t parse_input(char *rbuf, char *cmd, size_t length) {
     return 0;
   }
 
-  strncpy(cmd, rbuf, delimiter - rbuf); // ... * sizeof(char)
+  strncpy(cmd, rbuf, delimiter - rbuf);
+  cmd[delimiter - rbuf] = '\0'; /* This is added to guarantee that
+  the last symbol in cmd is \0. You should not care about
+  buffer overflow since MAX_COMMAND_LENGTH, against which the source is tested
+  a few lines above, is smaller than MAX_COMMAND_SIZE.*/
+
   delimiter = delimiter + COMMAND_SEPARATOR_LENGTH;
   size_t offset = delimiter - rbuf;
 
