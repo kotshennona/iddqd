@@ -130,12 +130,12 @@ int parse_cmd(char *string, iddqd_cmd *res) {
  * returns:  number of bytes read
  *
  */
-size_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
+ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
   ALOGI("Entered read_from_socket\n");
 
   size_t taken_space;
   size_t free_space;
-  size_t result;
+  ssize_t result;
 
   taken_space = strlen(rbuf);
   free_space = buffer_size - taken_space;
@@ -143,7 +143,9 @@ size_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
   if (free_space > 0) {
     // TODO: process return code
     result = read(fd, rbuf + taken_space, free_space);
-    *(rbuf + result) = '\0';
+    if (result >= 0) {
+      *(rbuf + result) = '\0';
+    }
   } else {
     result = 0;
   }
