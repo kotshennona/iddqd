@@ -144,7 +144,7 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
     // TODO: process return code
     result = read(fd, rbuf + taken_space, free_space);
     if (result >= 0) {
-      *(rbuf + result) = '\0';
+      rbuf[taken_space + result] = '\0';
     }
   } else {
     result = 0;
