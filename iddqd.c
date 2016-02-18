@@ -94,7 +94,6 @@ int make_nonblocking(int fd) {
  */
 
 int parse_cmd(char *string, iddqd_cmd *res) {
-  ALOGI("Entered parse_cmd\n");
 
   char *n_token;
   n_token = strtok(string, TOKEN_SEPARATORS);
@@ -133,7 +132,6 @@ int parse_cmd(char *string, iddqd_cmd *res) {
  *
  */
 ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
-  ALOGI("Entered read_from_socket\n");
 
   size_t taken_space;
   size_t free_space;
@@ -154,7 +152,6 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
     result = 0;
   }
   ALOGI("read_from_socket exiting, read %d \n", result);
-  ALOGI("buffer is %s\n", rbuf);
 
   return result;
 }
@@ -175,8 +172,6 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
 
 size_t parse_input(char *rbuf, char *cmd, size_t length) {
 
-  ALOGI("Entered parse_input\n");
-  ALOGI("buffer is %s\n", rbuf);
   char *delimiter;
   delimiter = strstr(rbuf, COMMAND_SEPARATOR);
   *cmd = '\0';
@@ -228,9 +223,6 @@ size_t parse_input(char *rbuf, char *cmd, size_t length) {
     *(rbuf + i + 1) = '\0';
   }
 
-  ALOGI("Exitiong parse_input\n");
-  ALOGI("buffer is %s\n", rbuf);
-  ALOGI("cmd is %s\n", cmd);
   return 1;
 }
 
@@ -252,8 +244,6 @@ size_t parse_input(char *rbuf, char *cmd, size_t length) {
  */
 
 int get_next_command(int fd, char *rbuf, char *cmd) {
-  ALOGI("Entered get_next_command\n");
-
   size_t bytes_read_cnt;
   size_t parsed_cmd_length;
 
@@ -262,7 +252,6 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
     parsed_cmd_length = parse_input(rbuf, cmd, (size_t)MAX_COMMAND_LENGTH);
   } while (bytes_read_cnt > 0 && parsed_cmd_length == 0);
 
-  ALOGI("get_next_command exiting\n");
   return parsed_cmd_length;
 }
 
@@ -278,7 +267,6 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
  */
 
 static int process_cmds(int fd, int max_cmd_length) {
-  ALOGI("Entered process_cmds\n");
 
   char *cmd = malloc(sizeof(char) * MAX_COMMAND_SIZE);
   char *r_buf = malloc(sizeof(char) * MAX_READ_BUFFER_SIZE);
@@ -290,8 +278,6 @@ static int process_cmds(int fd, int max_cmd_length) {
   size_t i;
 
   while (get_next_command(fd, r_buf, cmd) > 0) {
-    ALOGI("get_next_command\n");
-
     if (!parse_cmd(cmd, &pcmd)) {
       ALOGI("Command is %s\n", pcmd.cmd);
       ALOGI("Argument is %s\n", pcmd.arg);
