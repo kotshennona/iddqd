@@ -133,8 +133,6 @@ int parse_cmd(char *string, iddqd_cmd *res) {
 size_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
   ALOGI("Entered read_from_socket\n");
 
-  ALOGI("Entered read_from_socket\n");
-
   size_t taken_space;
   size_t free_space;
   size_t result;
