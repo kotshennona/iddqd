@@ -14,7 +14,7 @@
 #define MAX_TOKEN_SIZE MAX_TOKEN_LENGTH + 1
 #define MAX_COMMAND_LENGTH 27
 #define MAX_COMMAND_SIZE MAX_COMMAND_LENGTH + 1
-#define TOKEN_SEPARATORS  " \t\n"
+#define TOKEN_SEPARATORS " \t\n"
 #define COMMAND_SEPARATOR "-"
 #define COMMAND_SEPARATOR_LENGTH 1
 
@@ -24,18 +24,18 @@
 #define MAX_READ_BUFFER_LENGTH (MAX_COMMAND_LENGTH + MAX_TOKEN_LENGTH) * 2
 #define MAX_READ_BUFFER_SIZE MAX_READ_BUFFER_LENGTH + 1
 
-#include <cutils/sockets.h>
 #include <cutils/log.h>
+#include <cutils/sockets.h>
 #include <errno.h>
-#include <string.h>
-#include <sys/select.h>
-#include <sys/ioctl.h>
 #include <stdio.h>
 #include <string.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
 
-typedef struct{
-	char cmd[MAX_TOKEN_SIZE];
-	char arg[MAX_TOKEN_SIZE];
+typedef struct {
+  char cmd[MAX_TOKEN_SIZE];
+  char arg[MAX_TOKEN_SIZE];
 } iddqd_cmd;
 
 /*
@@ -49,34 +49,34 @@ typedef struct{
  * returns: the largest of two given integers
  */
 // Should I make this one inline?
-int get_max (int first, int second) {
-	return (first < second) ?  (second) : (first);
+int get_max(int first, int second) {
+  return (first < second) ? (second) : (first);
 }
 
 /*
- * Function: make_nonblocking 
+ * Function: make_nonblocking
  * Enables a non-blocking mode for a given file descriptor.
- * 
+ *
  * n1: int file descriptor
  *
  * returns: 0 on succes, 1 on error
  *
  */
 
-int make_nonblocking (int fd) {
-	int current_flags;
-	current_flags = fcntl(fd, F_GETFD);
-	
-	if (current_flags < 0) {
-		return 1;
-	}
-	current_flags |= O_NONBLOCK;
-	
-	if (fcntl(fd, F_SETFD, current_flags) < 0){
-		return 1;
-	}
-	
-	return 0;
+int make_nonblocking(int fd) {
+  int current_flags;
+  current_flags = fcntl(fd, F_GETFD);
+
+  if (current_flags < 0) {
+    return 1;
+  }
+  current_flags |= O_NONBLOCK;
+
+  if (fcntl(fd, F_SETFD, current_flags) < 0) {
+    return 1;
+  }
+
+  return 0;
 }
 
 /*
@@ -91,73 +91,77 @@ int make_nonblocking (int fd) {
  *
  */
 
-int parse_cmd(char *string, iddqd_cmd *res){
-	ALOGI("Entered parse_cmd\n");
+int parse_cmd(char *string, iddqd_cmd *res) {
+  ALOGI("Entered parse_cmd\n");
 
-	char *n_token; 
-	n_token = strtok(string, TOKEN_SEPARATORS);
+  char *n_token;
+  n_token = strtok(string, TOKEN_SEPARATORS);
 
-	if(n_token == NULL || (strlen(n_token) == 0) || (strlen(n_token) >= MAX_TOKEN_LENGTH)){
-		return 1;	
-	}
+  if (n_token == NULL || (strlen(n_token) == 0) ||
+      (strlen(n_token) >= MAX_TOKEN_LENGTH)) {
+    return 1;
+  }
 
-	strcpy (res->cmd, n_token);	
-	
-	// This would be a loop if we had variable number of argument.
-	n_token = strtok(NULL, TOKEN_SEPARATORS);
+  strcpy(res->cmd, n_token);
 
-	if(n_token == NULL || (strlen(n_token) == 0) || (strlen(n_token) >= MAX_TOKEN_LENGTH)){
-		return 1;	
-	}
+  // This would be a loop if we had variable number of argument.
+  n_token = strtok(NULL, TOKEN_SEPARATORS);
 
-	strcpy (res->arg, n_token);	
+  if (n_token == NULL || (strlen(n_token) == 0) ||
+      (strlen(n_token) >= MAX_TOKEN_LENGTH)) {
+    return 1;
+  }
 
-	return 0;
+  strcpy(res->arg, n_token);
+
+  return 0;
 }
 
 /*
  * Function: read_from_socket
  * ----------------------
- * Read up to N characters from the provided file descriptor into a given buffer.
+ * Read up to N characters from the provided file descriptor into a given
+ * buffer.
  *
- * n1: a file descriptor 
+ * n1: a file descriptor
  * n2: a pointer to a buffer
  * n3: size of the buffer
  *
  * returns:  number of bytes read
  *
  */
-size_t read_from_socket(int fd, char *rbuf, size_t buffer_size){
-	ALOGI("Entered read_from_socket\n");
+size_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
+  ALOGI("Entered read_from_socket\n");
 
-	ALOGI("Entered read_from_socket\n");
+  ALOGI("Entered read_from_socket\n");
 
-	size_t taken_space;
-	size_t free_space;
-	size_t result;
-	
-	taken_space = strlen(rbuf);
-	free_space = buffer_size - taken_space;
-	
-	if(free_space > 0){ 
-		//TODO: process return code
-		result = read(fd, rbuf + taken_space, free_space);
-		*(rbuf + result) = '\0';
-	} else {
-		result = 0;
-	}
-	ALOGI("read_from_socket exiting, read %d \n", result);	
-	ALOGI("buffer is %s\n", rbuf);	
+  size_t taken_space;
+  size_t free_space;
+  size_t result;
 
-	return result;
+  taken_space = strlen(rbuf);
+  free_space = buffer_size - taken_space;
+
+  if (free_space > 0) {
+    // TODO: process return code
+    result = read(fd, rbuf + taken_space, free_space);
+    *(rbuf + result) = '\0';
+  } else {
+    result = 0;
+  }
+  ALOGI("read_from_socket exiting, read %d \n", result);
+  ALOGI("buffer is %s\n", rbuf);
+
+  return result;
 }
 
 /*
  * Function: parse_input
  * ----------------------
- * Read up to N characters from the provided file descriptor into a given buffer.
+ * Read up to N characters from the provided file descriptor into a given
+ * buffer.
  *
- * n1: a file descriptor 
+ * n1: a file descriptor
  * n2: a pointer to a buffer
  * n3: size of the buffer
  *
@@ -165,70 +169,72 @@ size_t read_from_socket(int fd, char *rbuf, size_t buffer_size){
  *
  */
 
-size_t parse_input(char *rbuf, char *cmd, size_t length){
+size_t parse_input(char *rbuf, char *cmd, size_t length) {
 
-	ALOGI("Entered parse_input\n");	
-	ALOGI("buffer is %s\n", rbuf);	
-	char *delimiter;
-	delimiter = strstr(rbuf, COMMAND_SEPARATOR);
-	*cmd='\0';
+  ALOGI("Entered parse_input\n");
+  ALOGI("buffer is %s\n", rbuf);
+  char *delimiter;
+  delimiter = strstr(rbuf, COMMAND_SEPARATOR);
+  *cmd = '\0';
 
-	// Either command is too long or the client uses unsupported
-	// COMMAND_SEPARATOR
-	if (delimiter == NULL){
-		ALOGI("Delimiter not found\n");
-		*rbuf = '\0';
-		return 0;
-	}
+  // Either command is too long or the client uses unsupported
+  // COMMAND_SEPARATOR
+  if (delimiter == NULL) {
+    ALOGI("Delimiter not found\n");
+    *rbuf = '\0';
+    return 0;
+  }
 
-	// The first thing in the buffer is COMMAND_SEPARATOR
-	// TODO: Shift everything COMMAND_SEPARATOR_LENGTH left and try again
-	if(rbuf == delimiter) {
-		ALOGI("Delimiter at start\n");
-		for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - COMMAND_SEPARATOR_LENGTH; i++){
-			*(rbuf + i) = *(rbuf + COMMAND_SEPARATOR_LENGTH + i);
-			*(rbuf + i + 1) = '\0';
-		}
-		return 0;
-	}
+  // The first thing in the buffer is COMMAND_SEPARATOR
+  // TODO: Shift everything COMMAND_SEPARATOR_LENGTH left and try again
+  if (rbuf == delimiter) {
+    ALOGI("Delimiter at start\n");
+    for (size_t i = 0;
+         i < MAX_READ_BUFFER_LENGTH - 1 - COMMAND_SEPARATOR_LENGTH; i++) {
+      *(rbuf + i) = *(rbuf + COMMAND_SEPARATOR_LENGTH + i);
+      *(rbuf + i + 1) = '\0';
+    }
+    return 0;
+  }
 
-	// Command is too long
-	if((delimiter - rbuf) > MAX_COMMAND_LENGTH) {
-		ALOGI("Command size exceeded");
-		size_t offset = delimiter - rbuf;
-		for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset; i++){
-			*(rbuf + i) = *(rbuf + offset + i);
-			*(rbuf + i + 1) = '\0';
-		}
+  // Command is too long
+  if ((delimiter - rbuf) > MAX_COMMAND_LENGTH) {
+    ALOGI("Command size exceeded");
+    size_t offset = delimiter - rbuf;
+    for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset; i++) {
+      *(rbuf + i) = *(rbuf + offset + i);
+      *(rbuf + i + 1) = '\0';
+    }
 
-		return 0;
-	}
+    return 0;
+  }
 
-	strncpy(cmd, rbuf, delimiter - rbuf);// ... * sizeof(char)
-	delimiter = delimiter + COMMAND_SEPARATOR_LENGTH; 
-	size_t offset = delimiter - rbuf;
+  strncpy(cmd, rbuf, delimiter - rbuf); // ... * sizeof(char)
+  delimiter = delimiter + COMMAND_SEPARATOR_LENGTH;
+  size_t offset = delimiter - rbuf;
 
-	// TODO: employ MACRO or function
-	for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset ; i++){
-		*(rbuf + i) = *(delimiter + i);
-		*(rbuf + i + 1) = '\0';
-	}
+  // TODO: employ MACRO or function
+  for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset; i++) {
+    *(rbuf + i) = *(delimiter + i);
+    *(rbuf + i + 1) = '\0';
+  }
 
-	ALOGI("Exitiong parse_input\n");	
-	ALOGI("buffer is %s\n", rbuf);	
-	ALOGI("cmd is %s\n", cmd);	
-	return 1;
+  ALOGI("Exitiong parse_input\n");
+  ALOGI("buffer is %s\n", rbuf);
+  ALOGI("cmd is %s\n", cmd);
+  return 1;
 }
 
 /*
  * Function: get_next_command
  * ----------------------
- * Retrieve a command from a given file descriptor. Command is a character sequence
+ * Retrieve a command from a given file descriptor. Command is a character
+ * sequence
  * terminated by COMMAND_SEPARATOR.
  * First it reads a few bytes from the fd to the buffer, then parses contents of
  * that buffer.
  *
- * n1: a file descriptor 
+ * n1: a file descriptor
  * n2: a pointer to read buffer
  * n3: a pointer to write buffer
  *
@@ -236,29 +242,29 @@ size_t parse_input(char *rbuf, char *cmd, size_t length){
  *
  */
 
-int get_next_command(int fd, char *rbuf, char *cmd){
-	ALOGI("Entered get_next_command\n");
+int get_next_command(int fd, char *rbuf, char *cmd) {
+  ALOGI("Entered get_next_command\n");
 
-	size_t bytes_read_cnt;
-	size_t parsed_cmd_length;
-	size_t result;
+  size_t bytes_read_cnt;
+  size_t parsed_cmd_length;
+  size_t result;
 
-	while (1){
-		parsed_cmd_length = parse_input(rbuf, cmd, (size_t) MAX_COMMAND_LENGTH);
+  while (1) {
+    parsed_cmd_length = parse_input(rbuf, cmd, (size_t)MAX_COMMAND_LENGTH);
 
-		if (parsed_cmd_length > 0 ){
-			result = parsed_cmd_length;
-			break;
-		}else if (read_from_socket(fd, rbuf, (size_t) MAX_READ_BUFFER_LENGTH) > 0){
-			continue;
-		}else {
-			result = 0;
-			break;	
-		}
-	}
+    if (parsed_cmd_length > 0) {
+      result = parsed_cmd_length;
+      break;
+    } else if (read_from_socket(fd, rbuf, (size_t)MAX_READ_BUFFER_LENGTH) > 0) {
+      continue;
+    } else {
+      result = 0;
+      break;
+    }
+  }
 
-	ALOGI("get_next_command exiting\n");	
-	return result;
+  ALOGI("get_next_command exiting\n");
+  return result;
 }
 
 /*
@@ -266,107 +272,107 @@ int get_next_command(int fd, char *rbuf, char *cmd){
  * ----------------------
  * Reads commands from file. Commands are separated by COMMAND_SEPARATOR.
  *
- * n1: a file descriptor 
+ * n1: a file descriptor
  *
  * returns:  0 on succes, 1 on error
  *
  */
 
-static int process_cmds(int fd, int max_cmd_length){
-	ALOGI("Entered process_cmds\n");
-	
-	char *cmd = malloc(sizeof(char) * MAX_COMMAND_SIZE);
-	char *r_buf = malloc(sizeof(char) * MAX_READ_BUFFER_SIZE);
-	*cmd = '\0';
-	*r_buf = '\0';
-	iddqd_cmd pcmd;// p stands for "parsed"
+static int process_cmds(int fd, int max_cmd_length) {
+  ALOGI("Entered process_cmds\n");
 
-	size_t b_read;
-	size_t i;
+  char *cmd = malloc(sizeof(char) * MAX_COMMAND_SIZE);
+  char *r_buf = malloc(sizeof(char) * MAX_READ_BUFFER_SIZE);
+  *cmd = '\0';
+  *r_buf = '\0';
+  iddqd_cmd pcmd; // p stands for "parsed"
 
-	while(get_next_command(fd, r_buf, cmd) > 0) {
-		ALOGI("get_next_command\n");
+  size_t b_read;
+  size_t i;
 
-		if (!parse_cmd(cmd, &pcmd)){
-			ALOGI("Command is %s\n", pcmd.cmd);
-			ALOGI("Argument is %s\n", pcmd.arg);
-		}
-	}
-	
-	free(cmd);
-	free(r_buf);
-	return 0;
+  while (get_next_command(fd, r_buf, cmd) > 0) {
+    ALOGI("get_next_command\n");
+
+    if (!parse_cmd(cmd, &pcmd)) {
+      ALOGI("Command is %s\n", pcmd.cmd);
+      ALOGI("Argument is %s\n", pcmd.arg);
+    }
+  }
+
+  free(cmd);
+  free(r_buf);
+  return 0;
 }
 
 int main() {
 
-	int l_socket_fd = -1;
-	int c_socket_fd = -1;
-	fd_set fds;
+  int l_socket_fd = -1;
+  int c_socket_fd = -1;
+  fd_set fds;
 
-	l_socket_fd = android_get_control_socket(SOCKET_NAME);
+  l_socket_fd = android_get_control_socket(SOCKET_NAME);
 
-	if (l_socket_fd < 0 ){
-		ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
-		return -1;
-	}
+  if (l_socket_fd < 0) {
+    ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
+    return -1;
+  }
 
-	if (make_nonblocking (l_socket_fd)) {
-		ALOGE("Unable to modify inputdevinfo_socket flags. (%s)\n", strerror(errno));
-	}
+  if (make_nonblocking(l_socket_fd)) {
+    ALOGE("Unable to modify inputdevinfo_socket flags. (%s)\n",
+          strerror(errno));
+  }
 
-	if (listen (l_socket_fd, 0) < 0) {
-		ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
-		return -1;
-	}
+  if (listen(l_socket_fd, 0) < 0) {
+    ALOGE("Unable to open inputdevinfo_socket (%s)\n", strerror(errno));
+    return -1;
+  }
 
-	while(1){
-		FD_ZERO(&fds);
-		FD_SET(l_socket_fd, &fds);
+  while (1) {
+    FD_ZERO(&fds);
+    FD_SET(l_socket_fd, &fds);
 
-		if (c_socket_fd >= 0 ) {
-			// &&  fcntl(c_socket_fd, F_GETFD) >= 0 ? 
-			FD_SET(c_socket_fd, &fds);
-		}
+    if (c_socket_fd >= 0) {
+      // &&  fcntl(c_socket_fd, F_GETFD) >= 0 ?
+      FD_SET(c_socket_fd, &fds);
+    }
 
-		int retval = select(get_max(c_socket_fd, l_socket_fd) + 1, &fds, NULL, NULL, NULL);
+    int retval =
+        select(get_max(c_socket_fd, l_socket_fd) + 1, &fds, NULL, NULL, NULL);
 
-		if(retval <= 0){
-			ALOGI("Error\n");
-			// Should I check for EBADR?
-			break;
-		} 
+    if (retval <= 0) {
+      ALOGI("Error\n");
+      // Should I check for EBADR?
+      break;
+    }
 
-		if(FD_ISSET(l_socket_fd, &fds)) {
-			ALOGI("Connection attempt\n");
-			if(c_socket_fd < 0) {
-				c_socket_fd = accept(l_socket_fd, NULL, NULL);
-			}
+    if (FD_ISSET(l_socket_fd, &fds)) {
+      ALOGI("Connection attempt\n");
+      if (c_socket_fd < 0) {
+        c_socket_fd = accept(l_socket_fd, NULL, NULL);
+      }
 
-			if (make_nonblocking (c_socket_fd)) {
-				ALOGE("Unable to modify socket flags. (%s)\n", strerror(errno));
-			}
-			
-		} 
+      if (make_nonblocking(c_socket_fd)) {
+        ALOGE("Unable to modify socket flags. (%s)\n", strerror(errno));
+      }
+    }
 
-		if(c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &fds)){
+    if (c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &fds)) {
 
-			int unread_bytes_count;
-			if (ioctl(c_socket_fd, FIONREAD, &unread_bytes_count)){
-				ALOGE("Attempt to check if client socket is closed resulted in error.\n");
-			} else if(unread_bytes_count == 0) {
-				//TODO: Check return code?				
-				close(c_socket_fd);
-				c_socket_fd = -1;
-			} else {
-				process_cmds(c_socket_fd, MAX_COMMAND_LENGTH);
-				close(c_socket_fd);
-				c_socket_fd = -1;
-			}
-		}
+      int unread_bytes_count;
+      if (ioctl(c_socket_fd, FIONREAD, &unread_bytes_count)) {
+        ALOGE(
+            "Attempt to check if client socket is closed resulted in error.\n");
+      } else if (unread_bytes_count == 0) {
+        // TODO: Check return code?
+        close(c_socket_fd);
+        c_socket_fd = -1;
+      } else {
+        process_cmds(c_socket_fd, MAX_COMMAND_LENGTH);
+        close(c_socket_fd);
+        c_socket_fd = -1;
+      }
+    }
+  }
 
-	}
-
-return 0;
-
+  return 0;
 }
