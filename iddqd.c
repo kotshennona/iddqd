@@ -24,6 +24,11 @@
 #define MAX_READ_BUFFER_LENGTH (MAX_COMMAND_LENGTH + MAX_TOKEN_LENGTH) * 2
 #define MAX_READ_BUFFER_SIZE MAX_READ_BUFFER_LENGTH + 1
 
+#define MAX_DEVICE_INFO_LENGTH 256
+#define MAX_DEVICE_INFO_COUNT 4
+#define MAX_WRITE_BUFFER_LENGTH MAX_DEVICE_INFO_LENGTH *MAX_DEVICE_INFO_COUNT
+#define MAX_WRITE_BUFFER_SIZE MAX_WRITE_BUFFER_LENGTH + 1
+
 #include <cutils/log.h>
 #include <cutils/sockets.h>
 #include <errno.h>
@@ -299,9 +304,11 @@ static int process_cmds(int fd, int max_cmd_length) {
 
 int main() {
 
+  char *wbuf = malloc(sizeof(char) * MAX_WRITE_BUFFER_SIZE);
   int l_socket_fd = -1;
   int c_socket_fd = -1;
   fd_set fds;
+  *wbuf = '\0';
 
   l_socket_fd = android_get_control_socket(SOCKET_NAME);
 
@@ -365,5 +372,6 @@ int main() {
     }
   }
 
+  free(wbuf);
   return 0;
 }
