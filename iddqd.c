@@ -307,7 +307,7 @@ int main() {
   char *wbuf = malloc(sizeof(char) * MAX_WRITE_BUFFER_SIZE);
   int l_socket_fd = -1;
   int c_socket_fd = -1;
-  fd_set fds;
+  fd_set read_fds;
   *wbuf = '\0';
 
   l_socket_fd = android_get_control_socket(SOCKET_NAME);
@@ -328,16 +328,16 @@ int main() {
   }
 
   while (1) {
-    FD_ZERO(&fds);
-    FD_SET(l_socket_fd, &fds);
+    FD_ZERO(&read_fds);
+    FD_SET(l_socket_fd, &read_fds);
 
     if (c_socket_fd >= 0) {
       // &&  fcntl(c_socket_fd, F_GETFD) >= 0 ?
-      FD_SET(c_socket_fd, &fds);
+      FD_SET(c_socket_fd, &read_fds);
     }
 
     int retval =
-        select(get_max(c_socket_fd, l_socket_fd) + 1, &fds, NULL, NULL, NULL);
+        select(get_max(c_socket_fd, l_socket_fd) + 1, &read_fds, NULL, NULL, NULL);
 
     if (retval <= 0) {
       ALOGI("Error\n");
@@ -345,7 +345,7 @@ int main() {
       break;
     }
 
-    if (FD_ISSET(l_socket_fd, &fds)) {
+    if (FD_ISSET(l_socket_fd, &read_fds)) {
       ALOGI("Connection attempt\n");
       if (c_socket_fd < 0) {
         c_socket_fd = accept(l_socket_fd, NULL, NULL);
@@ -356,7 +356,7 @@ int main() {
       }
     }
 
-    if (c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &fds)) {
+    if (c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &read_fds)) {
 
       int unread_bytes_count;
       if (ioctl(c_socket_fd, FIONREAD, &unread_bytes_count)) {
