@@ -45,6 +45,9 @@ typedef struct {
   char arg[MAX_TOKEN_SIZE];
 } iddqd_cmd;
 
+// Let's try global
+static char *wbuf;
+
 /*
  * Function: get_max
  * -------------------
@@ -294,6 +297,7 @@ static int process_cmds(int fd, int max_cmd_length) {
     if (!parse_cmd(cmd, &pcmd)) {
       ALOGI("Command is %s\n", pcmd.cmd);
       ALOGI("Argument is %s\n", pcmd.arg);
+      strcpy(wbuf, "Hello!\n\0");
     }
   }
 
@@ -302,12 +306,37 @@ static int process_cmds(int fd, int max_cmd_length) {
   return 0;
 }
 
+/*
+ * Function: write_response
+ * ------------------------
+ * Writes contents of a given char buffer to a fd. After everything is written
+ * clears the buffer.
+ * n1: file descriptor
+ * n2: pointer to a char buffer
+ *
+ * returns: nothing
+ *
+ */
+
+void write_response(int fd, char *wbuf) {
+  ssize_t bytes_written_cnt;
+  bytes_written_cnt = write(fd, wbuf, strlen(wbuf));
+  if (bytes_written_cnt < 0) {
+    ALOGE("Unable to write to a socket (%s)\n", strerror(errno));
+  } else {
+    *wbuf = '\0';
+  }
+  // Should I use feature test here?
+  fsync(fd);
+}
+
 int main() {
 
-  char *wbuf = malloc(sizeof(char) * MAX_WRITE_BUFFER_SIZE);
+  wbuf = malloc(sizeof(char) * MAX_WRITE_BUFFER_SIZE);
   int l_socket_fd = -1;
   int c_socket_fd = -1;
   fd_set read_fds;
+  fd_set write_fds;
   *wbuf = '\0';
 
   l_socket_fd = android_get_control_socket(SOCKET_NAME);
@@ -329,6 +358,8 @@ int main() {
 
   while (1) {
     FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
+
     FD_SET(l_socket_fd, &read_fds);
 
     if (c_socket_fd >= 0) {
@@ -336,8 +367,12 @@ int main() {
       FD_SET(c_socket_fd, &read_fds);
     }
 
-    int retval =
-        select(get_max(c_socket_fd, l_socket_fd) + 1, &read_fds, NULL, NULL, NULL);
+    if (c_socket_fd >= 0 && strlen(wbuf) > 0) {
+      FD_SET(c_socket_fd, &write_fds);
+    }
+
+    int retval = select(get_max(c_socket_fd, l_socket_fd) + 1, &read_fds, NULL,
+                        NULL, NULL);
 
     if (retval <= 0) {
       ALOGI("Error\n");
@@ -354,6 +389,10 @@ int main() {
       if (make_nonblocking(c_socket_fd)) {
         ALOGE("Unable to modify socket flags. (%s)\n", strerror(errno));
       }
+    }
+
+    if (c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &write_fds)) {
+      write_response(c_socket_fd, wbuf);
     }
 
     if (c_socket_fd >= 0 && FD_ISSET(c_socket_fd, &read_fds)) {
