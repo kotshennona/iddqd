@@ -157,6 +157,28 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_size) {
 }
 
 /*
+ * Function: shift_left
+ * --------------------
+ * Shift contents of the given buffer starting from _offset_ position
+ * to the left.
+ *
+ * n1: a pointer to a buffer
+ * n2: buffer length  (i.e. its size -1)
+ * n3: offset
+ *
+ * returns: nothing
+ *
+ */
+
+void shift_left(char *buf, const size_t length, const size_t offset) {
+  // TODO: Rewrite with strcpy
+  for (size_t i = 0; i < length - 1 - offset; i++) {
+    *(buf + i) = *(buf + offset + i);
+    *(buf + i + 1) = '\0';
+  }
+}
+
+/*
  * Function: parse_input
  * ----------------------
  * Read up to N characters from the provided file descriptor into a given
@@ -188,11 +210,7 @@ size_t parse_input(char *rbuf, char *cmd, size_t length) {
   // TODO: Shift everything COMMAND_SEPARATOR_LENGTH left and try again
   if (rbuf == delimiter) {
     ALOGI("Delimiter at start\n");
-    for (size_t i = 0;
-         i < MAX_READ_BUFFER_LENGTH - 1 - COMMAND_SEPARATOR_LENGTH; i++) {
-      *(rbuf + i) = *(rbuf + COMMAND_SEPARATOR_LENGTH + i);
-      *(rbuf + i + 1) = '\0';
-    }
+    shift_left(rbuf, MAX_READ_BUFFER_LENGTH, COMMAND_SEPARATOR_LENGTH);
     return 0;
   }
 
@@ -200,11 +218,7 @@ size_t parse_input(char *rbuf, char *cmd, size_t length) {
   if ((delimiter - rbuf) > MAX_COMMAND_LENGTH) {
     ALOGI("Command size exceeded");
     size_t offset = delimiter - rbuf;
-    for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset; i++) {
-      *(rbuf + i) = *(rbuf + offset + i);
-      *(rbuf + i + 1) = '\0';
-    }
-
+    shift_left(rbuf, MAX_READ_BUFFER_LENGTH, offset);
     return 0;
   }
 
@@ -216,13 +230,7 @@ size_t parse_input(char *rbuf, char *cmd, size_t length) {
 
   delimiter = delimiter + COMMAND_SEPARATOR_LENGTH;
   size_t offset = delimiter - rbuf;
-
-  // TODO: employ MACRO or function
-  for (size_t i = 0; i < MAX_READ_BUFFER_LENGTH - 1 - offset; i++) {
-    *(rbuf + i) = *(delimiter + i);
-    *(rbuf + i + 1) = '\0';
-  }
-
+  shift_left(rbuf, MAX_READ_BUFFER_LENGTH, offset);
   return 1;
 }
 
