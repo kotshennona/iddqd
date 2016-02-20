@@ -371,8 +371,8 @@ int main() {
       FD_SET(c_socket_fd, &write_fds);
     }
 
-    int retval = select(get_max(c_socket_fd, l_socket_fd) + 1, &read_fds, NULL,
-                        NULL, NULL);
+    int retval = select(get_max(c_socket_fd, l_socket_fd) + 1, &read_fds,
+                        &write_fds, NULL, NULL);
 
     if (retval <= 0) {
       ALOGI("Error\n");
