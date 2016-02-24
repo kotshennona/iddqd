@@ -29,6 +29,8 @@
 #define MAX_WRITE_BUFFER_LENGTH MAX_DEVICE_INFO_LENGTH *MAX_DEVICE_INFO_COUNT
 #define MAX_WRITE_BUFFER_SIZE MAX_WRITE_BUFFER_LENGTH + 1
 
+#define MESSAGE_NO_SUCH_COMMAND "Unknown command - "
+
 #include <cutils/log.h>
 #include <cutils/sockets.h>
 #include <errno.h>
@@ -266,6 +268,31 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
   } while (bytes_read_cnt > 0 && parsed_cmd_length == 0);
 
   return parsed_cmd_length;
+}
+
+/* Function: execute_no_such_command
+ * ---------------------------------
+ * Writes an error message to the provided character buffer.
+ *
+ * n1: pointer to a char buffer
+ * n2: buffer length
+ * n3: pointer to a iddqd_cmd structure.
+ *
+ * returns: nothing
+ */
+
+void execute_no_such_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
+  size_t space_left = wbuf_length - strlen(wbuf);
+  size_t response_length =
+      strlen(MESSAGE_NO_SUCH_COMMAND) + strlen(pcmd.cmd) + 1;
+
+  if (response_length <= space_left) {
+    strcat(wbuf, MESSAGE_NO_SUCH_COMMAND);
+    strcat(wbuf, pcmd.cmd);
+    strcat(wbuf, "\n");
+  } else {
+    // TODO clear buffer? do nothing?
+  }
 }
 
 /* Function: execute_command
