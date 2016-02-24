@@ -45,9 +45,6 @@ typedef struct {
   char arg[MAX_TOKEN_SIZE];
 } iddqd_cmd;
 
-// Let's try global
-static char *wbuf;
-
 /*
  * Function: get_max
  * -------------------
@@ -271,6 +268,28 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
   return parsed_cmd_length;
 }
 
+/* Function: execute_command
+ * -------------------------
+ * Executes a command - i.e. performs command-dependent argument check,
+ * takes necessary actions and returns a result.
+ *
+ * n1: a pointer to an output char buffer
+ * n2: buffer length (i.e. without trailing \0)
+ * n3: a pointer to a iddqd_cmd struct
+ *
+ * returns: TODO
+ *
+ */
+
+void execute_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
+  if (strcmp(pcmd.cmd, "get_input_device_info") == 0) {
+    execute_get_input_device_info(wbuf, MAX_WRITE_BUFFER_LENGTH, pcmd);
+  } else {
+    // Command is not supported
+    execute_no_such_command(wbuf, MAX_WRITE_BUFFER_LENGTH, pcmd);
+  }
+}
+
 /*
  * Function: process_cmds
  * ----------------------
@@ -282,7 +301,8 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
  *
  */
 
-static int process_cmds(int fd, int max_cmd_length) {
+static int process_cmds(int fd, int max_cmd_length, char *wbuf,
+                        size_t wbuf_length) {
 
   char cmd[MAX_COMMAND_SIZE];
   char r_buf[MAX_READ_BUFFER_SIZE];
@@ -297,7 +317,7 @@ static int process_cmds(int fd, int max_cmd_length) {
     if (!parse_cmd(&cmd, &pcmd)) {
       ALOGI("Command is %s\n", pcmd.cmd);
       ALOGI("Argument is %s\n", pcmd.arg);
-      strcpy(wbuf, "Hello!\n\0");
+      execute_command(&pcmd);
     }
   }
 
@@ -330,7 +350,7 @@ void write_response(int fd, char *wbuf) {
 
 int main() {
 
-  wbuf = malloc(sizeof(char) * MAX_WRITE_BUFFER_SIZE);
+  char *wbuf = malloc(sizeof(char) * MAX_WRITE_BUFFER_SIZE);
   int l_socket_fd = -1;
   int c_socket_fd = -1;
   fd_set read_fds;
@@ -404,7 +424,8 @@ int main() {
         close(c_socket_fd);
         c_socket_fd = -1;
       } else {
-        process_cmds(c_socket_fd, MAX_COMMAND_LENGTH);
+        process_cmds(c_socket_fd, MAX_COMMAND_LENGTH, wbuf,
+                     MAX_WRITE_BUFFER_LENGTH);
       }
     }
   }
