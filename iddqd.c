@@ -300,7 +300,7 @@ void execute_get_input_device_info(char *wbuf, size_t wbuf_length,
   }
 
   while ((read = getline(&line, &length, device_list_stream)) != -1) {
-    if (strncmp(line, "I: ", 3) == 0) {
+    if (strncmp(line, "I: ", 2) == 0) {
       current_device_no++;
     }
     if (current_device_no == device_no) {
