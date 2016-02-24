@@ -30,6 +30,7 @@
 #define MAX_WRITE_BUFFER_SIZE MAX_WRITE_BUFFER_LENGTH + 1
 
 #define MESSAGE_NO_SUCH_COMMAND "Unknown command - "
+#define INPUT_DEVICE_INFO_FILE "/proc/bus/input/devices"
 
 #include <cutils/log.h>
 #include <cutils/sockets.h>
@@ -270,6 +271,49 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
   return parsed_cmd_length;
 }
 
+/* Function: execute_get_input_device_info
+ * ---------------------------------------
+ * Copies device description taken from /proc/bus/input/devices
+ * to a given buffer. Device is identified by its position in the file.
+ * If device is not found, writes an error message to the buffer.
+ *
+ * n1: a pointer to an output char buffer
+ * n2: buffer length (i.e. without trailing \0)
+ * n3: a pointer to a iddqd_cmd struct
+ *
+ * returns: nothing
+ */
+
+void execute_get_input_device_info(char *wbuf, size_t wbuf_length,
+                                   iddqd_cmd *pcmd) {
+  // TODO: check Input
+  int device_no = atoi(pcmd->arg);
+  int current_device_no = -1;
+  char *line = NULL;
+  size_t length = 0;
+  ssize_t read;
+  FILE *device_list_stream;
+
+  device_list_stream = fopen(INPUT_DEVICE_INFO_FILE, "r");
+  if (device_list_stream == NULL) {
+    return;
+  }
+
+  while ((read = getline(&line, &length, device_list_stream)) != -1) {
+    if (strncmp(line, "I: ", 3) == 0) {
+      current_device_no++;
+    }
+    if (current_device_no == device_no) {
+      if (wbuf_length - strlen(wbuf) >= (size_t)read) {
+        strcat(wbuf, line);
+      }
+    }
+  }
+
+  free(line);
+  fclose(device_list_stream);
+}
+
 /* Function: execute_no_such_command
  * ---------------------------------
  * Writes an error message to the provided character buffer.
@@ -284,11 +328,11 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
 void execute_no_such_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
   size_t space_left = wbuf_length - strlen(wbuf);
   size_t response_length =
-      strlen(MESSAGE_NO_SUCH_COMMAND) + strlen(pcmd.cmd) + 1;
+      strlen(MESSAGE_NO_SUCH_COMMAND) + strlen(pcmd->cmd) + 1;
 
   if (response_length <= space_left) {
     strcat(wbuf, MESSAGE_NO_SUCH_COMMAND);
-    strcat(wbuf, pcmd.cmd);
+    strcat(wbuf, pcmd->cmd);
     strcat(wbuf, "\n");
   } else {
     // TODO clear buffer? do nothing?
@@ -309,7 +353,7 @@ void execute_no_such_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
  */
 
 void execute_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
-  if (strcmp(pcmd.cmd, "get_input_device_info") == 0) {
+  if (strcmp(pcmd->cmd, "get_input_device_info") == 0) {
     execute_get_input_device_info(wbuf, MAX_WRITE_BUFFER_LENGTH, pcmd);
   } else {
     // Command is not supported
@@ -343,11 +387,11 @@ static int process_cmds(int fd, int max_cmd_length, char *wbuf,
   size_t b_read;
   size_t i;
 
-  while (get_next_command(fd, &r_buf, &cmd) > 0) {
-    if (!parse_cmd(&cmd, &pcmd)) {
+  while (get_next_command(fd, r_buf, cmd) > 0) {
+    if (!parse_cmd(cmd, &pcmd)) {
       ALOGI("Command is %s\n", pcmd.cmd);
       ALOGI("Argument is %s\n", pcmd.arg);
-      execute_command(&pcmd);
+      execute_command(wbuf, MAX_WRITE_BUFFER_LENGTH, &pcmd);
     }
   }
 
