@@ -296,6 +296,9 @@ void execute_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
  * Reads commands from file. Commands are separated by COMMAND_SEPARATOR.
  *
  * n1: a file descriptor
+ * n2: max command length in characters
+ * n3: pointer to an output buffer
+ * n4: buffer length (i.e. without trailing \0)
  *
  * returns:  0 on succes, 1 on error
  *
