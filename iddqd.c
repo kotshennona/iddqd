@@ -284,25 +284,23 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
 
 static int process_cmds(int fd, int max_cmd_length) {
 
-  char *cmd = malloc(sizeof(char) * MAX_COMMAND_SIZE);
-  char *r_buf = malloc(sizeof(char) * MAX_READ_BUFFER_SIZE);
-  *cmd = '\0';
-  *r_buf = '\0';
+  char cmd[MAX_COMMAND_SIZE];
+  char r_buf[MAX_READ_BUFFER_SIZE];
+  cmd[0] = '\0';
+  r_buf[0] = '\0';
   iddqd_cmd pcmd; // p stands for "parsed"
 
   size_t b_read;
   size_t i;
 
-  while (get_next_command(fd, r_buf, cmd) > 0) {
-    if (!parse_cmd(cmd, &pcmd)) {
+  while (get_next_command(fd, &r_buf, &cmd) > 0) {
+    if (!parse_cmd(&cmd, &pcmd)) {
       ALOGI("Command is %s\n", pcmd.cmd);
       ALOGI("Argument is %s\n", pcmd.arg);
       strcpy(wbuf, "Hello!\n\0");
     }
   }
 
-  free(cmd);
-  free(r_buf);
   return 0;
 }
 
