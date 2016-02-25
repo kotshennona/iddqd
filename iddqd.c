@@ -36,7 +36,9 @@
 #include <cutils/sockets.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -286,8 +288,22 @@ int get_next_command(int fd, char *rbuf, char *cmd) {
 
 void execute_get_input_device_info(char *wbuf, size_t wbuf_length,
                                    iddqd_cmd *pcmd) {
-  // TODO: check Input
-  int device_no = atoi(pcmd->arg);
+  // Parsing and checking argument
+  char *end;
+  errno = 0;
+  long int argument = strtol(pcmd->arg, &end, 10I);
+
+  if (errno != 0 || pcmd->arg == end) {
+    // We really don't care what exact error it was.
+    ALOGE("Get input device info. Invalid argument %s\n", pcmd->arg);
+    return;
+  }
+  if (argument > INT_MAX || argument < INT_MIN) {
+    ALOGE("Get input device info. The argument %s is too large.\n", pcmd->arg);
+    return;
+  }
+
+  int device_no = (int)argument;
   int current_device_no = -1;
   char *line = NULL;
   size_t length = 0;
