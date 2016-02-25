@@ -29,7 +29,7 @@
 #define MAX_WRITE_BUFFER_LENGTH MAX_DEVICE_INFO_LENGTH *MAX_DEVICE_INFO_COUNT
 #define MAX_WRITE_BUFFER_SIZE MAX_WRITE_BUFFER_LENGTH + 1
 
-#define MESSAGE_NO_SUCH_COMMAND "Unknown command - "
+#define MESSAGE_NO_SUCH_COMMAND "Unknown command"
 #define INPUT_DEVICE_INFO_FILE "/proc/bus/input/devices"
 
 #include <cutils/log.h>
@@ -331,9 +331,8 @@ void execute_no_such_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
       strlen(MESSAGE_NO_SUCH_COMMAND) + strlen(pcmd->cmd) + 1;
 
   if (response_length <= space_left) {
-    strcat(wbuf, MESSAGE_NO_SUCH_COMMAND);
-    strcat(wbuf, pcmd->cmd);
-    strcat(wbuf, "\n");
+    snprintf(wbuf + strlen(wbuf), space_left, "%s: %s\n",
+             MESSAGE_NO_SUCH_COMMAND, pcmd->cmd);
   } else {
     // TODO clear buffer? do nothing?
   }
