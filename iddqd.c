@@ -30,6 +30,8 @@
 #define MAX_WRITE_BUFFER_SIZE MAX_WRITE_BUFFER_LENGTH + 1
 
 #define MESSAGE_NO_SUCH_COMMAND "Unknown command"
+#define MESSAGE_NO_SUCH_DEVICE "No such device"
+
 #define INPUT_DEVICE_INFO_FILE "/proc/bus/input/devices"
 
 #include <cutils/log.h>
@@ -303,6 +305,7 @@ void execute_get_input_device_info(char *wbuf, size_t wbuf_length,
     return;
   }
 
+  char device_found = 0;
   int device_no = (int)argument;
   int current_device_no = -1;
   char *line = NULL;
@@ -320,10 +323,15 @@ void execute_get_input_device_info(char *wbuf, size_t wbuf_length,
       current_device_no++;
     }
     if (current_device_no == device_no) {
+      device_found = 1;
       if (wbuf_length - strlen(wbuf) >= (size_t)read) {
         strcat(wbuf, line);
       }
     }
+  }
+
+  if (!device_found) {
+    execute_no_such_device(wbuf, MAX_WRITE_BUFFER_LENGTH, pcmd);
   }
 
   free(line);
@@ -349,6 +357,30 @@ void execute_no_such_command(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
   if (response_length <= space_left) {
     snprintf(wbuf + strlen(wbuf), space_left, "%s: %s\n",
              MESSAGE_NO_SUCH_COMMAND, pcmd->cmd);
+  } else {
+    // TODO clear buffer? do nothing?
+  }
+}
+
+/* Function: execute_no_such_device
+ * ---------------------------------
+ * Writes an error message to the provided character buffer.
+ *
+ * n1: pointer to a char buffer
+ * n2: buffer length
+ * n3: pointer to a iddqd_cmd structure.
+ *
+ * returns: nothing
+ */
+
+void execute_no_such_device(char *wbuf, size_t wbuf_length, iddqd_cmd *pcmd) {
+  size_t space_left = wbuf_length - strlen(wbuf);
+  size_t response_length =
+      strlen(MESSAGE_NO_SUCH_COMMAND) + strlen(pcmd->arg) + 1;
+
+  if (response_length <= space_left) {
+    snprintf(wbuf + strlen(wbuf), space_left, "%s: %s\n",
+             MESSAGE_NO_SUCH_DEVICE, pcmd->arg);
   } else {
     // TODO clear buffer? do nothing?
   }
