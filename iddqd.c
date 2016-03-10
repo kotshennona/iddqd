@@ -79,19 +79,14 @@ static inline int get_max(int first, int second) {
  */
 
 int make_nonblocking(int fd) {
-  int current_flags;
-  current_flags = fcntl(fd, F_GETFL);
+  int current_flags = fcntl(fd, F_GETFL);
 
   if (current_flags < 0) {
     return 1;
   }
   current_flags |= O_NONBLOCK;
 
-  if (fcntl(fd, F_SETFL, current_flags) < 0) {
-    return 1;
-  }
-
-  return 0;
+  return fcntl(fd, F_SETFL, current_flags) != 0;
 }
 
 /*
