@@ -145,7 +145,7 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_length) {
 
   size_t taken_space;
   size_t free_space;
-  ssize_t result;
+  ssize_t result = 0;
 
   taken_space = strlen(rbuf);
   free_space = buffer_length - taken_space;
@@ -153,14 +153,13 @@ ssize_t read_from_socket(int fd, char *rbuf, size_t buffer_length) {
   if (free_space > 0) {
     // TODO: process return code
     result = read(fd, rbuf + taken_space, free_space);
-    if (result >= 0) {
+    if (result > 0) {
       rbuf[taken_space + result] = '\0';
     } else {
       result = 0;
     }
-  } else {
-    result = 0;
   }
+
   ALOGI("read_from_socket exiting, read %d \n", result);
 
   return result;
