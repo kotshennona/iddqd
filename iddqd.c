@@ -103,11 +103,12 @@ int make_nonblocking(int fd) {
 
 int parse_cmd(char *string, iddqd_cmd *res) {
 
-  char *n_token;
-  n_token = strtok(string, TOKEN_SEPARATORS);
+  char *n_token = strtok(string, TOKEN_SEPARATORS);
+  size_t string_length;
 
-  if (n_token == NULL || (strlen(n_token) == 0) ||
-      (strlen(n_token) >= MAX_TOKEN_LENGTH)) {
+  string_length = strlen(n_token);
+  if (n_token == NULL || (string_length == 0) ||
+      (string_length >= MAX_TOKEN_LENGTH)) {
     return 1;
   }
 
@@ -115,9 +116,10 @@ int parse_cmd(char *string, iddqd_cmd *res) {
 
   // This would be a loop if we had variable number of argument.
   n_token = strtok(NULL, TOKEN_SEPARATORS);
+  string_length = strlen(n_token);
 
-  if (n_token == NULL || (strlen(n_token) == 0) ||
-      (strlen(n_token) >= MAX_TOKEN_LENGTH)) {
+  if (n_token == NULL || (string_length == 0) ||
+      (string_length >= MAX_TOKEN_LENGTH)) {
     return 1;
   }
 
