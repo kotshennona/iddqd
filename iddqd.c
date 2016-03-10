@@ -64,8 +64,7 @@ typedef struct {
  *
  * returns: the largest of two given integers
  */
-// Should I make this one inline?
-int get_max(int first, int second) {
+static inline int get_max(int first, int second) {
   return (first < second) ? (second) : (first);
 }
 
