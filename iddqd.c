@@ -10,6 +10,8 @@
 
 // NB that WHATEVER_SIZE is basically WHATEVER_LENGTH plus one
 // to take into account string termination characher.
+// TOKEN is a sequence of alphanumeric characters. COMMAND is a
+// sequence of space-separated tokens.
 #define MAX_TOKEN_LENGTH 23
 #define MAX_TOKEN_SIZE MAX_TOKEN_LENGTH + 1
 #define MAX_COMMAND_LENGTH 27
